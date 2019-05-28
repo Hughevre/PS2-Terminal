@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------
 -- Company: 
--- Engineer: 
+-- Engineer: Hubert Zaj¹czkowski
 -- 
 -- Create Date: 23.05.2019 18:30:26
 -- Design Name: 
@@ -36,7 +36,7 @@ entity PS2_Driver is
            Reset        : in    STD_LOGIC;
            Scan_Code    : in    STD_LOGIC_VECTOR (7 downto 0);
            Scan_End     : in    STD_LOGIC;
-           Code_To_Send : out   STD_LOGIC_VECTOR (7 downto 0));
+           K_Code       : out   STD_LOGIC_VECTOR (7 downto 0));
 end PS2_Driver;
 
 architecture RTL of PS2_Driver is
@@ -53,5 +53,5 @@ begin
         end if;
     end process  O_Buf_Alter_State;
     
-   Code_To_Send <= O_Buf_State_Reg;
+   K_Code <= O_Buf_State_Reg;
 end RTL;

@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------
 -- Company: 
--- Engineer: 
+-- Engineer: Hubert Zaj¹czkowski
 -- 
 -- Create Date: 23.05.2019 19:06:04
 -- Design Name: 
@@ -45,18 +45,18 @@ entity LED_Driver is
 end LED_Driver;
 
 architecture Data_Flow of LED_Driver is
-    signal Error_O : STD_LOGIC_VECTOR (7 downto 0);
+    signal Driver : STD_LOGIC_VECTOR (7 downto 0);
 begin
-    with Scan_Err select Error_O <= 
-        Scan_Code when '1',
+    with Scan_Err select Driver <= 
+        Scan_Code when '0',
         "00000000" when others;
         
-    D_0 <= Error_O(0);
-    D_1 <= Error_O(1);
-    D_2 <= Error_O(2);
-    D_3 <= Error_O(3);
-    D_4 <= Error_O(4);
-    D_5 <= Error_O(5);
-    D_6 <= Error_O(6);
-    D_7 <= Error_O(7);
+    D_0 <= Driver(0);
+    D_1 <= Driver(1);
+    D_2 <= Driver(2);
+    D_3 <= Driver(3);
+    D_4 <= Driver(4);
+    D_5 <= Driver(5);
+    D_6 <= Driver(6);
+    D_7 <= Driver(7);
 end Data_Flow;
