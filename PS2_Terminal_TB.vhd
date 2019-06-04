@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------
 -- Company: 
--- Engineer: 
+-- Engineer: Jakub Pêksyk / Hubert Zaj¹czkowski
 -- 
 -- Create Date: 28.05.2019 19:15:20
 -- Design Name: 
@@ -33,7 +33,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity PS2_Terminal_TB is
     constant Period     : time := 50 ns; -- 20 MHz System Clock
-    constant BitPeriod  : time := 60 us; -- Kbd Clock is 16.7 kHz max
+    constant BitPeriod  : time := 80 us; -- Kbd Clock is  kHz max
 end PS2_Terminal_TB;
 
 architecture Behavioral of PS2_Terminal_TB is
@@ -74,7 +74,7 @@ architecture Behavioral of PS2_Terminal_TB is
 	type Codes_Table_T is array (natural range <>) of Code_A;
 	
 	constant Codes_Table : Codes_Table_T 
-	 := ( (x"A5",'0'), (x"5A",'0'), (x"00",'0'), (x"FF",'0'),
+	 := ( (x"01",'0'), (x"05",'0'), (x"00",'0'), (x"FF",'0'),
 	 (x"12",'0'), (x"34",'0'), (x"56",'1'), (x"56",'0'),
 	 (x"78",'0'), (x"BC",'0') );
 	 
