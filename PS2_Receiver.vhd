@@ -47,37 +47,17 @@ architecture RTL of PS2_Receiver is
                   O : out   STD_LOGIC);
     end component;
     
-    type PS2_Receiver_States is (Idle, Start, Data_1, Data_2, 
+    type PS2_Receiver_States is (Idle, Data_1, Data_2, 
                                  Data_3, Data_4, Data_5, Data_6,
                                  Data_7, Data_8, Parity, Stop);
                                  
     signal State_Reg, State_Next    : PS2_Receiver_States;
-    signal Received_Data            : STD_LOGIC_VECTOR (7 downto 0); 
+    signal Received_Data            : STD_LOGIC_VECTOR (7 downto 0);
+    signal Received_Data_Next       : STD_LOGIC_VECTOR (7 downto 0);  
     signal Data_In_Enable           : STD_LOGIC;
     signal P_Reg, P_Next            : STD_LOGIC;
     signal R_XOR_Out                : STD_LOGIC;    
 begin
-    --Data path: functional unit
-    R_XOR: Reduction_XOR
-        generic map (N => 8)
-        port map    (D => Received_Data, O => R_XOR_Out);
-        
-    --Data path: rolling register
-    process (PS2_Clk, Reset)
-    begin
-        if Reset = '1' then
-            Received_Data <= (others => '0');
-        elsif falling_edge(PS2_Clk) then
-            if Data_In_Enable = '1' then
-                Received_Data(7) <= PS2_Data;
-                Shift:
-                for i in 7 downto 1 loop
-                    Received_Data(i - 1) <= Received_Data(i);
-                end loop;
-            end if;
-        end if;
-    end process;
-    
     --Control path: state register
     process (PS2_Clk, Reset)
     begin
@@ -95,33 +75,23 @@ begin
         case State_Reg is 
         when Idle =>
             if PS2_Data = '0' then --Start bit
-                State_Next <= Start;
+                State_Next <= Data_1;
             else 
                 State_Next <= Idle;
             end if;
-        when Start =>
-            Data_In_Enable <= '1';
-            State_Next <= Data_1;
         when Data_1 =>
-            Data_In_Enable <= '1';
             State_Next <= Data_2;
         when Data_2 =>
-            Data_In_Enable <= '1';
             State_Next <= Data_3;
         when Data_3 =>
-            Data_In_Enable <= '1';
             State_Next <= Data_4;
         when Data_4 =>
-            Data_In_Enable <= '1';
             State_Next <= Data_5;
         when Data_5 =>
-            Data_In_Enable <= '1';
             State_Next <= Data_6;
         when Data_6 =>
-            Data_In_Enable <= '1';
             State_Next <= Data_7;
         when Data_7 =>
-            Data_In_Enable <= '1';
             State_Next <= Data_8;
         when Data_8 =>
             State_Next <= Parity;
@@ -138,34 +108,49 @@ begin
     
     --Control path: output logic
     Scan_End  <= '1' when State_Reg = Stop else '0';
-    Scan_Code <= Received_Data when State_Reg = Stop else (others => '0');
     
+    --Data path: functional unit
+    R_XOR: Reduction_XOR
+        generic map (N => 8)
+        port map    (D => Received_Data, O => R_XOR_Out);
+        
     --Data path: data register
     process (PS2_Clk, Reset)
     begin
         if Reset = '1' then
             P_Reg <= '0';
+            Received_Data <= (others => '0');
         elsif falling_edge(PS2_Clk) then
             P_Reg <= P_Next;
+            Received_Data <= Received_Data_Next;
         end if;
     end process;
     
     --Data path: routing multiplexer
-    process (State_Reg, R_XOR_Out, PS2_Data)
+    process (State_Reg, R_XOR_Out, PS2_Data, P_Reg)
     begin
         P_Next <= P_Reg;
+        Received_Data_Next <= Received_Data;
         case State_Reg is
             when Idle =>
                 P_Next <= '0';
-            when Start =>
+                Received_Data_Next <= (others => '0');
             when Data_1 =>
+                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
             when Data_2 =>
+                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
             when Data_3 =>
+                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
             when Data_4 =>
+                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
             when Data_5 =>
+                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
             when Data_6 =>
+                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
             when Data_7 =>
+                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
             when Data_8 =>
+                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
             when Parity =>
                 P_Next <= R_XOR_Out xor not PS2_Data;
             when Stop =>
@@ -174,4 +159,5 @@ begin
     
     --Data path: output
     Scan_Err <= P_Reg;
+    Scan_Code <= Received_Data;
 end RTL;
