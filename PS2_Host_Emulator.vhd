@@ -34,8 +34,8 @@ use IEEE.STD_LOGIC_1164.ALL;
 entity PS2_Host_Emulator is
     Port ( Clk          : in    STD_LOGIC;
            Reset        : in    STD_LOGIC;
-           PS2_Clk      : in STD_LOGIC;
-           PS2_Data     : in STD_LOGIC;
+           PS2_Clk      : in    STD_LOGIC;
+           PS2_Data     : in    STD_LOGIC;
            Scan_Err     : out   STD_LOGIC;
            Scan_Code    : out   STD_LOGIC_VECTOR (7 downto 0));
 end PS2_Host_Emulator;
@@ -43,8 +43,8 @@ end PS2_Host_Emulator;
 architecture Structural of PS2_Host_Emulator is
     component PS2_Receiver is
     Port ( Reset        : in    STD_LOGIC;
-           PS2_Clk      : in STD_LOGIC;
-           PS2_Data     : in STD_LOGIC;
+           PS2_Clk      : in    STD_LOGIC;
+           PS2_Data     : in    STD_LOGIC;
            Scan_Err     : out   STD_LOGIC;
            Scan_Code    : out   STD_LOGIC_VECTOR (7 downto 0);
            Scan_End     : out   STD_LOGIC);

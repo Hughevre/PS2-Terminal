@@ -44,10 +44,10 @@ architecture RTL of PS2_Driver is
 begin
     O_Buf_Alter_State: process (Reset, Clk)
     begin
-        if Reset = '1' then
-            O_Buf_State_Reg <= (others => '0');
-        elsif rising_edge(Clk) then
-            if Scan_End = '1' then
+        if rising_edge(Clk) then
+            if Reset = '1' then
+                O_Buf_State_Reg <= (others => '0');
+            elsif Scan_End = '1' then
                 O_Buf_State_Reg <= Scan_Code;
             end if;
         end if;

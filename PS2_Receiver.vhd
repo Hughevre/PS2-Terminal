@@ -33,8 +33,8 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity PS2_Receiver is
     Port ( Reset        : in    STD_LOGIC;
-           PS2_Clk      : in STD_LOGIC;
-           PS2_Data     : in STD_LOGIC;
+           PS2_Clk      : in    STD_LOGIC;
+           PS2_Data     : in    STD_LOGIC;
            Scan_Err     : out   STD_LOGIC;
            Scan_Code    : out   STD_LOGIC_VECTOR (7 downto 0);
            Scan_End     : out   STD_LOGIC);
@@ -61,10 +61,12 @@ begin
     --Control path: state register
     process (PS2_Clk, Reset)
     begin
-        if Reset = '1' then
-            State_Reg <= Idle;
-        elsif falling_edge(PS2_Clk) then
-            State_Reg <= State_Next;
+        if falling_edge(PS2_Clk) then
+            if Reset = '1' then
+                State_Reg <= Idle;
+            else
+                State_Reg <= State_Next;
+            end if;
         end if;
     end process;
     
@@ -117,12 +119,14 @@ begin
     --Data path: data register
     process (PS2_Clk, Reset)
     begin
-        if Reset = '1' then
-            P_Reg <= '0';
-            Received_Data <= (others => '0');
-        elsif falling_edge(PS2_Clk) then
-            P_Reg <= P_Next;
-            Received_Data <= Received_Data_Next;
+        if falling_edge(PS2_Clk) then
+            if Reset = '1' then
+                P_Reg <= '0';
+                Received_Data <= (others => '0');
+            else
+                P_Reg <= P_Next;
+                Received_Data <= Received_Data_Next;
+            end if;
         end if;
     end process;
     
