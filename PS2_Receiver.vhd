@@ -59,6 +59,7 @@ architecture RTL of PS2_Receiver is
     signal Cnt_Reg, Cnt_Next            : UNSIGNED (3 downto 0);
     signal Received_Data                : STD_LOGIC_VECTOR (9 downto 0);
     signal Received_Data_Next           : STD_LOGIC_VECTOR (9 downto 0);  
+    signal Parity_Reg, Parity_Next      : STD_LOGIC;
     signal R_XOR_Out                    : STD_LOGIC;    
 begin
     --Filter registers
@@ -125,17 +126,20 @@ begin
         if Reset = '1' then
             Received_Data <= (others => '0');
             Cnt_Reg       <= (others => '0');
+            Parity_Reg    <= '0';
         elsif rising_edge(Clk) then
             Received_Data <= Received_Data_Next;
             Cnt_Reg       <= Cnt_Next;
+            Parity_Reg    <= Parity_Next;
         end if;
     end process;
     
     --Data path: routing multiplexer
-    process (State_Reg, PS2_Data, Received_Data, Cnt_Reg, Falling_Edge_PS2)
+    process (Received_Data, Cnt_Reg, State_Reg, Falling_Edge_PS2, PS2_Data, R_XOR_Out)
     begin
         Received_Data_Next <= Received_Data;
         Cnt_Next           <= Cnt_Reg;
+        Parity_Next        <= Parity_Reg;
         case State_Reg is
             when Idle =>
                 Received_Data_Next <= (others => '0');
@@ -146,11 +150,14 @@ begin
                     Cnt_Next <= Cnt_Reg - 1;
                 end if;
             when Load =>
+                Parity_Next <= (R_XOR_Out xor not Received_Data(8)) or not Received_Data(9);
          end case;
     end process;
     
-    --Data path: output
+    --Data path: status
     Count_0 <= '1' when State_Reg = Shift and Cnt_Reg = 0 else '0';
-    Scan_Err <= R_XOR_Out xor not Received_Data(8) when State_Reg = Load else '0';
+    
+    --Data path: output
+    Scan_Err <= Parity_Reg;
     Scan_Code <= Received_Data (7 downto 0) when State_Reg = Load else (others => '0');
 end RTL;
