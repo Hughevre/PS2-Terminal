@@ -34,14 +34,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 entity LED_Driver is
     Port ( Scan_Code    : in    STD_LOGIC_VECTOR (7 downto 0);
            Scan_Err     : in    STD_LOGIC;
-           D_0          : out   STD_LOGIC;
-           D_1          : out   STD_LOGIC;
-           D_2          : out   STD_LOGIC;
-           D_3          : out   STD_LOGIC;
-           D_4          : out   STD_LOGIC;
-           D_5          : out   STD_LOGIC;
-           D_6          : out   STD_LOGIC;
-           D_7          : out   STD_LOGIC);
+           Ds           : out   STD_LOGIC_VECTOR (7 downto 0));
 end LED_Driver;
 
 architecture Data_Flow of LED_Driver is
@@ -51,12 +44,5 @@ begin
         Scan_Code when '0',
         "00000000" when others;
         
-    D_0 <= Driver(0);
-    D_1 <= Driver(1);
-    D_2 <= Driver(2);
-    D_3 <= Driver(3);
-    D_4 <= Driver(4);
-    D_5 <= Driver(5);
-    D_6 <= Driver(6);
-    D_7 <= Driver(7);
+    Ds <= Driver;
 end Data_Flow;

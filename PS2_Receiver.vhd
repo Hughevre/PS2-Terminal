@@ -21,6 +21,7 @@
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.Numeric_std.all;
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
@@ -32,7 +33,8 @@ use IEEE.STD_LOGIC_1164.ALL;
 --use UNISIM.VComponents.all;
 
 entity PS2_Receiver is
-    Port ( Reset        : in    STD_LOGIC;
+    Port ( Clk          : in    STD_LOGIC;
+           Reset        : in    STD_LOGIC;
            PS2_Clk      : in    STD_LOGIC;
            PS2_Data     : in    STD_LOGIC;
            Scan_Err     : out   STD_LOGIC;
@@ -47,121 +49,108 @@ architecture RTL of PS2_Receiver is
                   O : out   STD_LOGIC);
     end component;
     
-    type PS2_Receiver_States is (Idle, Data_1, Data_2, 
-                                 Data_3, Data_4, Data_5, Data_6,
-                                 Data_7, Data_8, Parity, Stop);
+    type PS2_Receiver_States is (Idle, Shift, Load);
                                  
-    signal State_Reg, State_Next    : PS2_Receiver_States;
-    signal Received_Data            : STD_LOGIC_VECTOR (7 downto 0);
-    signal Received_Data_Next       : STD_LOGIC_VECTOR (7 downto 0);  
-    signal Data_In_Enable           : STD_LOGIC;
-    signal P_Reg, P_Next            : STD_LOGIC;
-    signal R_XOR_Out                : STD_LOGIC;    
+    signal Falling_Edge_PS2             : STD_LOGIC;
+    signal C_Flt_Reg, C_Flt_Next        : STD_LOGIC_VECTOR (7 downto 0); 
+    signal Fall_Flt_Reg, Fall_Flt_Next  : STD_LOGIC;                            
+    signal State_Reg, State_Next        : PS2_Receiver_States;
+    signal Count_0                      : STD_LOGIC;
+    signal Cnt_Reg, Cnt_Next            : UNSIGNED (3 downto 0);
+    signal Received_Data                : STD_LOGIC_VECTOR (9 downto 0);
+    signal Received_Data_Next           : STD_LOGIC_VECTOR (9 downto 0);  
+    signal R_XOR_Out                    : STD_LOGIC;    
 begin
-    --Control path: state register
-    process (PS2_Clk, Reset)
+    --Filter registers
+    process (Clk, Reset)
     begin
-        if falling_edge(PS2_Clk) then
-            if Reset = '1' then
-                State_Reg <= Idle;
-            else
-                State_Reg <= State_Next;
-            end if;
+        if Reset = '1' then
+            C_Flt_Reg    <= (others => '0');
+            Fall_Flt_Reg <= '0';
+        elsif rising_edge(Clk) then
+            C_Flt_Reg    <= C_Flt_Next;
+            Fall_Flt_Reg <= Fall_Flt_Next;
+        end if;
+    end process;
+    
+    --Filter outputs
+    C_Flt_Next <= PS2_Clk & C_Flt_Reg (7 downto 1); --Shifting register. Glitches shorter than 8 consecutives Clk ticks wiped out
+    with C_Flt_Reg select Fall_Flt_Next <=
+        '1' when "11111111",
+        '0' when "00000000",
+        Fall_Flt_Reg when others;
+    Falling_Edge_PS2 <= Fall_Flt_Reg and (not Fall_Flt_Next);
+    
+    --Control path: state register
+    process (Clk, Reset)
+    begin
+        if Reset = '1' then
+            State_Reg <= Idle;
+        elsif rising_edge(Clk) then
+            State_Reg <= State_Next;
         end if;
     end process;
     
     --Control path: next state logic
-    process (State_Reg, PS2_Data)
+    process (State_Reg, PS2_Data, Falling_Edge_PS2, Count_0)
     begin
-    Data_In_Enable <= '0';
+        State_Next <= State_Reg;
         case State_Reg is 
         when Idle =>
-            if PS2_Data = '0' then --Start bit
-                State_Next <= Data_1;
-            else 
-                State_Next <= Idle;
+            if Falling_Edge_PS2 = '1' and PS2_Data = '0' then --Start bit
+                State_Next <= Shift;
             end if;
-        when Data_1 =>
-            State_Next <= Data_2;
-        when Data_2 =>
-            State_Next <= Data_3;
-        when Data_3 =>
-            State_Next <= Data_4;
-        when Data_4 =>
-            State_Next <= Data_5;
-        when Data_5 =>
-            State_Next <= Data_6;
-        when Data_6 =>
-            State_Next <= Data_7;
-        when Data_7 =>
-            State_Next <= Data_8;
-        when Data_8 =>
-            State_Next <= Parity;
-        when Parity =>
-            State_Next <= Stop;
-        when Stop =>
-            if PS2_Data = '1' then
-                State_Next <= Idle;
-            else
-                State_Next <= Stop; --If failure
+        when Shift =>
+            if Falling_Edge_PS2 = '1' then
+                if Count_0 = '1' then
+                    State_Next <= Load;
+                end if;
             end if;
+        when Load =>
+            State_Next <= Idle;
         end case;
     end process;
     
     --Control path: output logic
-    Scan_End  <= '1' when State_Reg = Stop else '0';
+    Scan_End  <= '1' when State_Reg = Load else '0';
     
     --Data path: functional unit
     R_XOR: Reduction_XOR
         generic map (N => 8)
-        port map    (D => Received_Data, O => R_XOR_Out);
+        port map    (D => Received_Data (7 downto 0), O => R_XOR_Out);
         
     --Data path: data register
-    process (PS2_Clk, Reset)
+    process (Clk, Reset)
     begin
-        if falling_edge(PS2_Clk) then
-            if Reset = '1' then
-                P_Reg <= '0';
-                Received_Data <= (others => '0');
-            else
-                P_Reg <= P_Next;
-                Received_Data <= Received_Data_Next;
-            end if;
+        if Reset = '1' then
+            Received_Data <= (others => '0');
+            Cnt_Reg       <= (others => '0');
+        elsif rising_edge(Clk) then
+            Received_Data <= Received_Data_Next;
+            Cnt_Reg       <= Cnt_Next;
         end if;
     end process;
     
     --Data path: routing multiplexer
-    process (State_Reg, R_XOR_Out, PS2_Data, P_Reg)
+    process (State_Reg, PS2_Data, Received_Data, Cnt_Reg, Falling_Edge_PS2)
     begin
-        P_Next <= P_Reg;
         Received_Data_Next <= Received_Data;
+        Cnt_Next           <= Cnt_Reg;
         case State_Reg is
             when Idle =>
-                P_Next <= '0';
                 Received_Data_Next <= (others => '0');
-            when Data_1 =>
-                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
-            when Data_2 =>
-                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
-            when Data_3 =>
-                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
-            when Data_4 =>
-                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
-            when Data_5 =>
-                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
-            when Data_6 =>
-                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
-            when Data_7 =>
-                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
-            when Data_8 =>
-                Received_Data_Next <= PS2_Data & Received_Data(Received_Data'high downto 1);
-            when Parity =>
-                P_Next <= R_XOR_Out xor not PS2_Data;
-            when Stop =>
+                Cnt_Next <= "1001";
+            when Shift =>
+                if Falling_Edge_PS2 = '1' then
+                    Received_Data_Next <= PS2_Data & Received_Data (9 downto 1);
+                    Cnt_Next <= Cnt_Reg - 1;
+                end if;
+            when Load =>
          end case;
     end process;
     
     --Data path: output
-    Scan_Err <= P_Reg;
-    Scan_Code <= Received_Data;
+    Count_0 <= '1' when State_Reg = Shift and Cnt_Reg = 0 else '0';
+    Scan_Err <= R_XOR_Out xor not Received_Data(8) when State_Reg = Load else '0';
+    Scan_Code <= Received_Data (7 downto 0) when State_Reg = Load else (others => '0');
 end RTL;

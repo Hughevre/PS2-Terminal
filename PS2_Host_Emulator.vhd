@@ -42,7 +42,8 @@ end PS2_Host_Emulator;
 
 architecture Structural of PS2_Host_Emulator is
     component PS2_Receiver is
-    Port ( Reset        : in    STD_LOGIC;
+    Port ( Clk          : in    STD_LOGIC;
+           Reset        : in    STD_LOGIC;
            PS2_Clk      : in    STD_LOGIC;
            PS2_Data     : in    STD_LOGIC;
            Scan_Err     : out   STD_LOGIC;
@@ -61,7 +62,7 @@ architecture Structural of PS2_Host_Emulator is
     signal I_Scan_Code  : STD_LOGIC_VECTOR(7 downto 0);
     signal I_Scan_End   : STD_LOGIC;
 begin
-    Rcv     : PS2_Receiver port map (Reset => Reset, PS2_Clk => PS2_Clk, PS2_Data => PS2_Data, 
+    Rcv     : PS2_Receiver port map (Clk => Clk, Reset => Reset, PS2_Clk => PS2_Clk, PS2_Data => PS2_Data, 
                                      Scan_Err => Scan_Err, Scan_Code => I_Scan_Code, Scan_End => I_Scan_End);
                                 
     Drv     : PS2_Driver port map (Clk => Clk, Reset => Reset, Scan_Code => I_Scan_Code, Scan_End => I_Scan_End, K_Code => Scan_Code);

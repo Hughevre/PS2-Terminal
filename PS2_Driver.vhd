@@ -42,7 +42,7 @@ end PS2_Driver;
 architecture RTL of PS2_Driver is
     signal O_Buf_State_Reg : STD_LOGIC_VECTOR (7 downto 0);
 begin
-    O_Buf_Alter_State: process (Reset, Clk)
+    process (Reset, Clk)
     begin
         if rising_edge(Clk) then
             if Reset = '1' then
@@ -51,7 +51,7 @@ begin
                 O_Buf_State_Reg <= Scan_Code;
             end if;
         end if;
-    end process  O_Buf_Alter_State;
+    end process;
     
    K_Code <= O_Buf_State_Reg;
 end RTL;
